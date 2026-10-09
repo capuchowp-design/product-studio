@@ -51,7 +51,7 @@
 <div class="field"><label>Intensidade do movimento</label><select id="motionAmt"><option value="0.08">Suave</option><option value="0.15" selected>Média (bem visível)</option><option value="0.24">Forte</option></select></div>
 <div class="field"><label>Tipo de transição</label><select id="transType"><option value="feed" selected>Rolagem de feed (diagonal para a esquerda)</option><option value="auto">Variada (alterna entre estilos)</option><option value="slide">Deslizar para o lado</option><option value="up">Empurrar para cima</option><option value="zoom">Zoom através</option><option value="fade">Fade</option></select></div>
 <div class="field"><label>Duração da transição (s)</label><input id="transition" type="number" min="0" max="1.5" step=".1" value=".7"></div>
-<div class="field"><label>Formato</label><select id="format"><option value="auto">Automático (MP4 se suportado, senão WebM)</option><option value="mp4">MP4 — somente se suportado</option><option value="webm">WebM</option></select></div>
+<div class="field"><label>Formato</label><select id="format"><option value="auto">Automático (MP4 H.264, recomendado p/ Shopee)</option><option value="mp4">MP4 H.264 (Shopee)</option><option value="webm">WebM (não aceito pela Shopee)</option></select></div>
 <label class="check"><input id="preserve" type="checkbox" checked><span>Preservar rigorosamente o produto: não alterar forma, cor, textura, logotipo, acessórios ou detalhes.</span></label>
 <button id="renderBtn" class="primary" disabled>Gerar vídeo</button>
 <div class="note"><strong>Fundo:</strong> esta versão não usa IA nem biblioteca de remoção de fundo. Em PNG/WebP com transparência, o fundo original é substituído pelo estúdio. Em uma foto comum com fundo incorporado, a foto é mantida intacta e apenas enquadrada no cenário. Assim o produto não é recriado, inventado ou deformado.</div>
@@ -99,7 +99,73 @@ else if(type==="zoom"){draw(ctx,b,0,ib,{sc:1.18-.18*p});draw(ctx,a,1,ia,{sc:1+.3
 else{draw(ctx,a,1,ia);draw(ctx,b,0,ib,{alpha:p})}}
 function frame(ctx,c,p,idx){ctx.clearRect(0,0,W,H);draw(ctx,c,p,idx)}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-async function renderVideo(){if(!state.items.length||state.rendering)return;state.rendering=true;$('renderBtn').disabled=true;resultCard.style.display="none";step(3);try{const imgs=[];for(let i=0;i<state.items.length;i++){imgs.push(process(state.items[i]));status(`Preparando imagens… ${i+1}/${state.items.length}`,0.12*(i+1)/state.items.length);await wait(0)}const m=mime($('format').value);if(!m)throw Error($('format').value==="mp4"?"Este navegador não grava MP4 via MediaRecorder. Escolha WebM ou Automático.":"Este navegador não oferece um formato compatível.");const ext=m.includes("mp4")?"mp4":"webm",fps=30,stream=preview.captureStream(fps),chunks=[],rec=new MediaRecorder(stream,{mimeType:m,videoBitsPerSecond:8000000});rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};const dur=Math.max(1.5,Math.min(8,+$('duration').value||3))*1000,tr=Math.max(0,Math.min(1.5,+$('transition').value||0))*1000,tf=Math.round(tr/1000*fps),fpi=Math.max(1,Math.round(dur/1000*fps)),total=fpi*imgs.length+tf*Math.max(0,imgs.length-1);let done=0;rec.start(1000);for(let i=0;i<imgs.length;i++){for(let f=0;f<fpi;f++){frame(pctx,imgs[i],f/Math.max(1,fpi-1),i);done++;status(`Gerando vídeo… ${i+1}/${imgs.length}`,0.12+.8*done/total);await wait(1000/fps)}if(i<imgs.length-1&&tf){for(let f=0;f<tf;f++){const p=ease(f/Math.max(1,tf-1));drawTransition(pctx,imgs[i],i,imgs[i+1],i+1,p,transFor(i));done++;status(`Transição ${i+1}/${imgs.length-1}`,0.12+.8*done/total);await wait(1000/fps)}}}frame(pctx,imgs[imgs.length-1],1,imgs.length-1);await wait(250);const blob=await new Promise((resolve,reject)=>{rec.onstop=()=>chunks.length?resolve(new Blob(chunks,{type:m})):reject(Error("O navegador não retornou o vídeo."));rec.onerror=e=>reject(e.error||Error("Erro ao gravar."));rec.stop()});const url=URL.createObjectURL(blob);resultVideo.src=url;downloadLink.href=url;downloadLink.download=`produto_vertical_${Date.now()}.${ext}`;formatNote.textContent=`Formato: ${ext.toUpperCase()} • 1080×1920 • 30 fps • sem áudio • sem marca d'água.`;resultCard.style.display="block";step(4);status("Vídeo pronto para pré-visualização e download.",1)}catch(e){console.error(e);status("Não foi possível gerar o vídeo: "+e.message);alert(e.message)}finally{state.rendering=false;$('renderBtn').disabled=!state.items.length}}
+const muxMp4=(()=>{
+const u32=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255],u16=n=>[(n>>8)&255,n&255],str=s=>[...s].map(c=>c.charCodeAt(0)),zeros=n=>new Array(n).fill(0);
+const MATRIX=[...u32(65536),...u32(0),...u32(0),...u32(0),...u32(65536),...u32(0),...u32(0),...u32(0),...u32(1073741824)];
+function B(type,...parts){const ps=parts.map(p=>p instanceof Uint8Array?p:Uint8Array.from(p));let len=8;ps.forEach(p=>len+=p.length);const o=new Uint8Array(len);o.set(u32(len),0);o.set(str(type),4);let off=8;ps.forEach(p=>{o.set(p,off);off+=p.length});return o}
+function muxMp4(o){const{w,h,fps,samples,avcC}=o,N=samples.length,TS=fps*1000,DELTA=1000,movDur=Math.round(N/fps*1000);
+const ftyp=B("ftyp",str("isom"),u32(512),str("isom"),str("iso2"),str("avc1"),str("mp41"));
+const mdatSize=samples.reduce((a,s)=>a+s.d.length,0);
+const build=off=>{
+const mvhd=B("mvhd",[0,0,0,0],u32(0),u32(0),u32(1000),u32(movDur),u32(65536),u16(256),zeros(10),MATRIX,zeros(24),u32(2));
+const tkhd=B("tkhd",[0,0,0,3],u32(0),u32(0),u32(1),u32(0),u32(movDur),zeros(8),u16(0),u16(0),u16(0),u16(0),MATRIX,u32(w*65536),u32(h*65536));
+const mdhd=B("mdhd",[0,0,0,0],u32(0),u32(0),u32(TS),u32(N*DELTA),u16(0x55c4),u16(0));
+const hdlr=B("hdlr",[0,0,0,0],u32(0),str("vide"),zeros(12),str("VideoHandler"),[0]);
+const vmhd=B("vmhd",[0,0,0,1],u16(0),zeros(6));
+const dinf=B("dinf",B("dref",[0,0,0,0],u32(1),B("url ",[0,0,0,1])));
+const avc1=B("avc1",zeros(6),u16(1),u16(0),u16(0),zeros(12),u16(w),u16(h),u32(0x00480000),u32(0x00480000),u32(0),u16(1),zeros(32),u16(0x18),u16(0xFFFF),B("avcC",avcC));
+const stsd=B("stsd",[0,0,0,0],u32(1),avc1);
+const stts=B("stts",[0,0,0,0],u32(1),u32(N),u32(DELTA));
+const keys=[];samples.forEach((s,i)=>{if(s.key)keys.push(i+1)});
+const stss=B("stss",[0,0,0,0],u32(keys.length),keys.flatMap(u32));
+const stsc=B("stsc",[0,0,0,0],u32(1),u32(1),u32(N),u32(1));
+const stsz=B("stsz",[0,0,0,0],u32(0),u32(N),samples.flatMap(s=>u32(s.d.length)));
+const stco=B("stco",[0,0,0,0],u32(1),u32(off));
+const stbl=B("stbl",stsd,stts,stss,stsc,stsz,stco);
+const minf=B("minf",vmhd,dinf,stbl);
+const mdia=B("mdia",mdhd,hdlr,minf);
+const trak=B("trak",tkhd,mdia);
+return B("moov",mvhd,trak)};
+const moovLen=build(0).length,moov=build(ftyp.length+moovLen+8);
+const mdatHead=Uint8Array.from([...u32(mdatSize+8),...str("mdat")]);
+return new Blob([ftyp,moov,mdatHead,...samples.map(s=>s.d)],{type:"video/mp4"})}
+return muxMp4;
+})();
+const AVC_LIST=["avc1.640028","avc1.4d0028","avc1.420028","avc1.640029","avc1.42001f"];
+async function mp4Encoder(fps){
+if(!("VideoEncoder" in window)||!("VideoFrame" in window))return null;
+let cfg=null;for(const codec of AVC_LIST){const c={codec,width:W,height:H,bitrate:8000000,framerate:fps,avc:{format:"avc"},latencyMode:"realtime"};try{const r=await VideoEncoder.isConfigSupported(c);if(r&&r.supported){cfg=c;break}}catch(e){}}
+if(!cfg)return null;
+const samples=[];let avcC=null,err=null,n=0;
+const enc=new VideoEncoder({output:(chunk,meta)=>{const d=new Uint8Array(chunk.byteLength);chunk.copyTo(d);samples.push({d,key:chunk.type==="key"});const ds=meta&&meta.decoderConfig&&meta.decoderConfig.description;if(!avcC&&ds)avcC=ds instanceof ArrayBuffer?new Uint8Array(ds.slice(0)):new Uint8Array(ds.buffer.slice(ds.byteOffset,ds.byteOffset+ds.byteLength))},error:e=>{err=e}});
+enc.configure(cfg);
+return{async push(canvas){if(err)throw err;while(enc.encodeQueueSize>6){await wait(4);if(err)throw err}const vf=new VideoFrame(canvas,{timestamp:Math.round(n*1e6/fps),duration:Math.round(1e6/fps)});enc.encode(vf,{keyFrame:n%fps===0});vf.close();n++},
+async finish(){await enc.flush();enc.close();if(err)throw err;if(!avcC||!samples.length)throw Error("O codificador H.264 não devolveu dados.");return muxMp4({w:W,h:H,fps,samples,avcC})}}}
+async function generate(imgs,useEnc,fps,dur,tr){
+const tf=Math.round(tr/1000*fps),fpi=Math.max(1,Math.round(dur/1000*fps)),total=fpi*imgs.length+tf*Math.max(0,imgs.length-1);
+let enc=null,rec=null,m="";const chunks=[];
+if(useEnc){enc=await mp4Encoder(fps);if(!enc)throw Error("Este navegador não tem codificador H.264 (WebCodecs).")}
+else{m=mime($('format').value);if(!m)throw Error($('format').value==="mp4"?"Este navegador não grava MP4. Use o Chrome atualizado.":"Este navegador não oferece um formato compatível.");rec=new MediaRecorder(preview.captureStream(fps),{mimeType:m,videoBitsPerSecond:8000000});rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};rec.start(1000)}
+let done=0;const tick=async()=>{done++;if(enc){await enc.push(preview);if(done%3===0)await wait(0)}else await wait(1000/fps)};
+for(let i=0;i<imgs.length;i++){
+for(let f=0;f<fpi;f++){frame(pctx,imgs[i],f/Math.max(1,fpi-1),i);status(`Gerando vídeo… ${i+1}/${imgs.length}`,0.12+.8*done/total);await tick()}
+if(i<imgs.length-1&&tf){for(let f=0;f<tf;f++){const p=ease(f/Math.max(1,tf-1));drawTransition(pctx,imgs[i],i,imgs[i+1],i+1,p,transFor(i));status(`Transição ${i+1}/${imgs.length-1}`,0.12+.8*done/total);await tick()}}}
+frame(pctx,imgs[imgs.length-1],1,imgs.length-1);await tick();
+if(enc){status("Finalizando o arquivo MP4…",0.95);return{blob:await enc.finish(),ext:"mp4",kind:"h264"}}
+await wait(250);
+const blob=await new Promise((resolve,reject)=>{rec.onstop=()=>chunks.length?resolve(new Blob(chunks,{type:m})):reject(Error("O navegador não retornou o vídeo."));rec.onerror=e=>reject(e.error||Error("Erro ao gravar."));rec.stop()});
+return{blob,ext:m.includes("mp4")?"mp4":"webm",kind:"rec"}}
+async function renderVideo(){if(!state.items.length||state.rendering)return;state.rendering=true;$('renderBtn').disabled=true;resultCard.style.display="none";step(3);
+try{const imgs=[];for(let i=0;i<state.items.length;i++){imgs.push(process(state.items[i]));status(`Preparando imagens… ${i+1}/${state.items.length}`,0.12*(i+1)/state.items.length);await wait(0)}
+const fps=30,fmt=$('format').value,dur=Math.max(1.5,Math.min(8,+$('duration').value||3))*1000,tr=Math.max(0,Math.min(1.5,+$('transition').value||0))*1000;
+let res=null;
+if(fmt!=="webm"){try{res=await generate(imgs,true,fps,dur,tr)}catch(e){console.warn("MP4 H.264 falhou:",e);status("Codificador MP4 indisponível; usando a gravação do navegador…")}}
+if(!res)res=await generate(imgs,false,fps,dur,tr);
+const url=URL.createObjectURL(res.blob);resultVideo.src=url;downloadLink.href=url;downloadLink.download=`produto_vertical_${Date.now()}.${res.ext}`;
+formatNote.textContent=res.kind==="h264"?"Formato: MP4 (H.264) • 1080×1920 • 30 fps • sem áudio • sem marca d'água.":res.ext==="mp4"?"Formato: MP4 gravado pelo navegador • 1080×1920 • 30 fps • sem áudio.":"Formato: WebM • a Shopee pede MP4: escolha MP4 ou Automático e use o Chrome atualizado.";
+resultCard.style.display="block";step(4);status("Vídeo pronto para pré-visualização e download.",1)}
+catch(e){console.error(e);status("Não foi possível gerar o vídeo: "+e.message);alert(e.message)}
+finally{state.rendering=false;$('renderBtn').disabled=!state.items.length}}
 $('renderBtn').onclick=renderVideo;background(pctx,"white");
 
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
