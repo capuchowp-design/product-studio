@@ -6,6 +6,10 @@
 - `sw.js`: cache offline do app shell.
 - `icons/`: ícones PNG de 192, 512, maskable e Apple Touch.
 
+## Modos de vídeo
+- **Estúdio**: uma foto por vez, com movimento e transições.
+- **Feed rolante**: fundo 9:16 desfocado e parado (de uma das fotos ou de outra imagem enviada) com as fotos com cantos arredondados em 4 animações: subindo (contínuo), da direita para a esquerda (contínuo), cubo 3D e página virando.
+
 ## Publicar no GitHub Pages
 1. Envie todos os arquivos e a pasta `icons/` para a raiz do repositório.
 2. Abra **Settings → Pages**, escolha a branch e `/ (root)`.

@@ -23,6 +23,7 @@
 .settings{display:grid;gap:16px}label{font-size:13px;font-weight:700}.field{display:grid;gap:8px}select,input[type=number]{width:100%;padding:11px 12px;border:1px solid #dfe4ef;border-radius:11px;background:#fff;font:inherit;color:var(--text);outline:none}select:focus,input[type=number]:focus{border-color:#8985ee;box-shadow:0 0 0 3px #6366f11a}input[type=range]{width:100%;accent-color:var(--accent)}.range-row{display:grid;grid-template-columns:1fr 52px;gap:8px;align-items:center}.value{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
 .preview-wrap{display:flex;justify-content:center;background:linear-gradient(145deg,#edf0f8,#e5eaf2);border-radius:17px;padding:16px}canvas#preview{width:min(100%,300px);height:auto;display:block;border-radius:10px;box-shadow:0 12px 34px #1820332e}.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:11px;margin-top:15px}.thumb{position:relative;border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#f5f6f8;cursor:pointer;transition:.16s}.thumb:hover{transform:translateY(-2px)}.thumb.active{outline:2px solid var(--accent);outline-offset:2px}.thumb canvas{display:block;width:100%;aspect-ratio:9/16}.thumb .index{position:absolute;left:7px;top:7px;background:#242344d9;color:#fff;border-radius:999px;padding:4px 7px;font-size:11px}.thumb .remove{position:absolute;right:5px;top:5px;width:27px;height:27px;padding:0;border:0;background:#ffffffed;border-radius:50%;font-size:16px}.empty{padding:22px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--line);border-radius:13px;background:#fafbfe}
 .status{margin-top:13px;font-size:13px;color:var(--muted);min-height:20px}.progress{height:7px;background:#e8ebf4;border-radius:99px;overflow:hidden;margin-top:8px}.progress>div{height:100%;width:0;background:linear-gradient(90deg,#5b5ce2,#2dd4bf);transition:width .15s}.result{display:none;margin-top:18px}video{width:100%;border-radius:14px;background:#111}.note{margin-top:14px;padding:13px 14px;border-radius:13px;background:linear-gradient(135deg,#f0f1ff,#effbf8);border:1px solid #e4e8f8;color:#566078;font-size:12px;line-height:1.55}.check{display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.45;color:#4f5662}.check input{margin-top:2px;accent-color:var(--accent)}a{color:inherit}
+.scroll-only{display:none}body.scrollmode .scroll-only{display:grid}body.scrollmode .note.scroll-only{display:block}body.scrollmode .classic-only{display:none}
 @media(max-width:850px){.layout{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,1fr)}.app{padding:16px}.card{padding:17px}header{align-items:flex-start}.badge{display:none}}
 
 </style>
@@ -42,19 +43,26 @@
 <section class="card result" id="resultCard"><h2>Vídeo gerado</h2><video id="resultVideo" controls playsinline></video><div class="toolbar"><a id="downloadLink"><button class="primary" type="button">Baixar vídeo</button></a></div><div class="note" id="formatNote"></div></section>
 </main>
 <aside class="card"><h2>2. Estilo e ajustes</h2><div class="settings">
-<div class="field"><label for="bgStyle">Fundo de estúdio</label><select id="bgStyle"><option value="white">Clássico branco</option><option value="gray">Cinza premium</option><option value="minimal">Minimalista</option></select></div>
+<div class="field"><label for="layoutMode">Modo de vídeo</label><select id="layoutMode"><option value="classic" selected>Estúdio (uma foto por vez)</option><option value="scroll">Feed rolante (fundo desfocado + fotos subindo)</option></select></div>
+<div class="field scroll-only"><label for="scrollAnim">Animação das fotos</label><select id="scrollAnim"><option value="up" selected>Subindo (contínuo)</option><option value="left">Da direita para a esquerda (contínuo)</option><option value="cube">Cubo 3D (gira da direita para a esquerda)</option><option value="page">Página virando</option></select><button type="button" id="playBtn">▶ Ver prévia da animação</button></div>
+<div class="field scroll-only"><label for="bgPhoto">Imagem do fundo (fica parada e desfocada)</label><select id="bgPhoto"></select><button type="button" id="bgUploadBtn">Enviar outra imagem de fundo</button><input id="bgFile" type="file" accept="image/jpeg,image/png,image/webp,image/avif,.avif"></div>
+<div class="field scroll-only"><label>Desfoque do fundo</label><div class="range-row"><input id="bgBlur" type="range" min="8" max="80" step="1" value="36"><span class="value" id="bgBlurVal">36px</span></div></div>
+<div class="field scroll-only"><label>Escurecer o fundo</label><div class="range-row"><input id="bgDim" type="range" min="0" max="60" step="1" value="25"><span class="value" id="bgDimVal">25%</span></div></div>
+<div class="field scroll-only"><label>Cantos arredondados</label><div class="range-row"><input id="cardRadius" type="range" min="0" max="12" step=".5" value="6"><span class="value" id="cardRadiusVal">6%</span></div></div>
+<div class="field classic-only"><label for="bgStyle">Fundo de estúdio</label><select id="bgStyle"><option value="white">Clássico branco</option><option value="gray">Cinza premium</option><option value="minimal">Minimalista</option></select></div>
 <div class="field"><label>Brilho</label><div class="range-row"><input id="brightness" type="range" min="-12" max="12" value="0"><span class="value" id="brightnessVal">0</span></div></div>
 <div class="field"><label>Contraste</label><div class="range-row"><input id="contrast" type="range" min="-12" max="12" value="0"><span class="value" id="contrastVal">0</span></div></div>
-<div class="field"><label>Nitidez leve</label><div class="range-row"><input id="sharpness" type="range" min="0" max="2" step=".1" value=".7"><span class="value" id="sharpnessVal">0.7</span></div></div>
-<div class="field"><label>Duração por foto</label><input id="duration" type="number" min="1.5" max="8" step=".5" value="3"></div>
-<div class="field"><label>Movimento da foto</label><select id="motion"><option value="auto">Variado (muda a cada foto)</option><option value="zoom">Zoom aproximando</option><option value="zoomout">Zoom afastando</option><option value="pan">Deslocamento lateral</option><option value="none">Sem movimento</option></select></div>
-<div class="field"><label>Intensidade do movimento</label><select id="motionAmt"><option value="0.08">Suave</option><option value="0.15" selected>Média (bem visível)</option><option value="0.24">Forte</option></select></div>
-<div class="field"><label>Tipo de transição</label><select id="transType"><option value="feed" selected>Rolagem de feed (diagonal para a esquerda)</option><option value="auto">Variada (alterna entre estilos)</option><option value="slide">Deslizar para o lado</option><option value="up">Empurrar para cima</option><option value="zoom">Zoom através</option><option value="fade">Fade</option></select></div>
-<div class="field"><label>Duração da transição (s)</label><input id="transition" type="number" min="0" max="1.5" step=".1" value=".7"></div>
+<div class="field classic-only"><label>Nitidez leve</label><div class="range-row"><input id="sharpness" type="range" min="0" max="2" step=".1" value=".7"><span class="value" id="sharpnessVal">0.7</span></div></div>
+<div class="field"><label id="durLabel">Duração por foto</label><input id="duration" type="number" min="1.5" max="8" step=".5" value="3"></div>
+<div class="field classic-only"><label>Movimento da foto</label><select id="motion"><option value="auto">Variado (muda a cada foto)</option><option value="zoom">Zoom aproximando</option><option value="zoomout">Zoom afastando</option><option value="pan">Deslocamento lateral</option><option value="none">Sem movimento</option></select></div>
+<div class="field classic-only"><label>Intensidade do movimento</label><select id="motionAmt"><option value="0.08">Suave</option><option value="0.15" selected>Média (bem visível)</option><option value="0.24">Forte</option></select></div>
+<div class="field classic-only"><label>Tipo de transição</label><select id="transType"><option value="feed" selected>Rolagem de feed (diagonal para a esquerda)</option><option value="auto">Variada (alterna entre estilos)</option><option value="slide">Deslizar para o lado</option><option value="up">Empurrar para cima</option><option value="zoom">Zoom através</option><option value="fade">Fade</option></select></div>
+<div class="field" id="transField"><label>Duração da transição (s)</label><input id="transition" type="number" min="0" max="1.5" step=".1" value=".7"></div>
 <div class="field"><label>Formato</label><select id="format"><option value="auto">Automático (MP4 H.264, recomendado p/ Shopee)</option><option value="mp4">MP4 H.264 (Shopee)</option><option value="webm">WebM (não aceito pela Shopee)</option></select></div>
 <label class="check"><input id="preserve" type="checkbox" checked><span>Preservar rigorosamente o produto: não alterar forma, cor, textura, logotipo, acessórios ou detalhes.</span></label>
 <button id="renderBtn" class="primary" disabled>Gerar vídeo</button>
-<div class="note"><strong>Fundo:</strong> esta versão não usa IA nem biblioteca de remoção de fundo. Em PNG/WebP com transparência, o fundo original é substituído pelo estúdio. Em uma foto comum com fundo incorporado, a foto é mantida intacta e apenas enquadrada no cenário. Assim o produto não é recriado, inventado ou deformado.</div>
+<div class="note scroll-only"><strong>Feed rolante:</strong> a imagem escolhida vira um fundo 9:16 desfocado e parado (fotos quadradas são cortadas no centro e esticadas só no fundo, o desfoque disfarça). As fotos do produto aparecem inteiras, sem cortes, com cantos arredondados e se movem conforme a animação escolhida (subindo, passando para o lado, cubo 3D ou página virando). Brilho e contraste valem para as fotos.</div>
+<div class="note classic-only"><strong>Fundo:</strong> esta versão não usa IA nem biblioteca de remoção de fundo. Em PNG/WebP com transparência, o fundo original é substituído pelo estúdio. Em uma foto comum com fundo incorporado, a foto é mantida intacta e apenas enquadrada no cenário. Assim o produto não é recriado, inventado ou deformado.</div>
 </div></aside>
 </div></div>
 <script>
@@ -71,12 +79,96 @@ function settings(){return{bg:$("bgStyle").value,brightness:+$("brightness").val
 function shadow(ctx,x,y,w,h){const cx=x+w/2,cy=Math.min(H-120,y+h*.94),rx=Math.max(80,w*.30),ry=Math.max(16,Math.min(70,h*.035));ctx.save();ctx.translate(cx,cy);ctx.scale(1,.42);const g=ctx.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,"rgba(0,0,0,.18)");g.addColorStop(.55,"rgba(0,0,0,.08)");g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,rx,0,Math.PI*2);ctx.fill();ctx.restore()}
 function fit(img,mw,mh){const s=Math.min(mw/img.naturalWidth,mh/img.naturalHeight);return{w:img.naturalWidth*s,h:img.naturalHeight*s}}
 function process(item){const c=document.createElement("canvas");c.width=W;c.height=H;const ctx=c.getContext("2d",{willReadFrequently:true}),s=settings();background(ctx,s.bg);const f=fit(item.img,W*.88,H*.73),x=(W-f.w)/2,y=(H-f.h)/2-H*.015;ctx.save();ctx.filter=`brightness(${100+s.brightness}%) contrast(${100+s.contrast}%)`;ctx.drawImage(item.img,x,y,f.w,f.h);ctx.restore();shadow(ctx,x,y,f.w,f.h);if(s.sharpness>0){const t=document.createElement("canvas");t.width=W;t.height=H;const tc=t.getContext("2d");tc.globalAlpha=.12*s.sharpness;tc.drawImage(c,-1,-1);tc.drawImage(c,1,1);ctx.globalAlpha=.22*s.sharpness;ctx.globalCompositeOperation="overlay";ctx.drawImage(t,0,0);ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1}return c}
-function previewRender(){if(!state.items.length){background(pctx,"white");return}pctx.clearRect(0,0,W,H);pctx.drawImage(process(state.items[state.selected]),0,0)}
-function galleryRender(){gallery.innerHTML="";if(!state.items.length){gallery.innerHTML='<div class="empty">Nenhuma foto adicionada.</div>';$('renderBtn').disabled=true;$('prevBtn').disabled=true;$('nextBtn').disabled=true;step(1);previewRender();return}state.items.forEach((item,i)=>{const box=document.createElement("div");box.className="thumb"+(i===state.selected?" active":"");const c=document.createElement("canvas");c.width=270;c.height=480;c.getContext("2d").drawImage(process(item),0,0,270,480);const idx=document.createElement("span");idx.className="index";idx.textContent=i+1;const rm=document.createElement("button");rm.className="remove";rm.textContent="×";rm.title="Remover";rm.onclick=e=>{e.stopPropagation();state.items.splice(i,1);state.selected=clamp(state.selected,0,Math.max(0,state.items.length-1));galleryRender();previewRender()};box.onclick=()=>{state.selected=i;galleryRender();previewRender();status(`Foto ${i+1} de ${state.items.length}.`)};box.append(c,idx,rm);gallery.appendChild(box)});$('renderBtn').disabled=false;$('prevBtn').disabled=state.selected<=0;$('nextBtn').disabled=state.selected>=state.items.length-1;step(2)}
-async function addFiles(files){const list=[...files].filter(f=>/^image\/(jpeg|png|webp|avif)$/.test(f.type)||/\.(jpe?g|png|webp|avif)$/i.test(f.name));if(!list.length)return;let failed=0;for(let i=0;i<list.length;i++){try{state.items.push({file:list[i],img:await loadImage(list[i])})}catch(e){failed++}status(`Carregando imagens… ${i+1}/${list.length}`, (i+1)/list.length)}state.selected=Math.max(0,state.items.length-1);galleryRender();previewRender();status(`${state.items.length} foto(s) pronta(s).`+(failed?` ${failed} arquivo(s) não puderam ser lidos (formato não suportado neste navegador).`:``),1)}
+function previewRender(){if(!state.items.length){background(pctx,isScroll()?"gray":"white");return}if(isScroll()){const L=getLayout();drawPreview(pctx,L,state.selected);return}pctx.clearRect(0,0,W,H);pctx.drawImage(process(state.items[state.selected]),0,0)}
+function galleryRender(){refreshBgOptions();gallery.innerHTML="";if(!state.items.length){gallery.innerHTML='<div class="empty">Nenhuma foto adicionada.</div>';$('renderBtn').disabled=true;$('prevBtn').disabled=true;$('nextBtn').disabled=true;step(1);previewRender();return}state.items.forEach((item,i)=>{const box=document.createElement("div");box.className="thumb"+(i===state.selected?" active":"");const c=document.createElement("canvas");c.width=270;c.height=480;c.getContext("2d").drawImage(isScroll()?thumbScroll(item):process(item),0,0,270,480);const idx=document.createElement("span");idx.className="index";idx.textContent=i+1;const rm=document.createElement("button");rm.className="remove";rm.textContent="×";rm.title="Remover";rm.onclick=e=>{e.stopPropagation();state.items.splice(i,1);state.selected=clamp(state.selected,0,Math.max(0,state.items.length-1));galleryRender();previewRender()};box.onclick=()=>{state.selected=i;galleryRender();previewRender();status(`Foto ${i+1} de ${state.items.length}.`)};box.append(c,idx,rm);gallery.appendChild(box)});$('renderBtn').disabled=false;$('prevBtn').disabled=state.selected<=0;$('nextBtn').disabled=state.selected>=state.items.length-1;step(2)}
+async function addFiles(files){const list=[...files].filter(f=>/^image\/(jpeg|png|webp|avif)$/.test(f.type)||/\.(jpe?g|png|webp|avif)$/i.test(f.name));if(!list.length)return;let failed=0;for(let i=0;i<list.length;i++){try{state.items.push({id:++uid,file:list[i],img:await loadImage(list[i])})}catch(e){failed++}status(`Carregando imagens… ${i+1}/${list.length}`, (i+1)/list.length)}state.selected=Math.max(0,state.items.length-1);galleryRender();previewRender();status(`${state.items.length} foto(s) pronta(s).`+(failed?` ${failed} arquivo(s) não puderam ser lidos (formato não suportado neste navegador).`:``),1)}
 fileInput.onchange=e=>addFiles(e.target.files);["dragenter","dragover"].forEach(x=>dropZone.addEventListener(x,e=>{e.preventDefault();dropZone.classList.add("drag")}));["dragleave","drop"].forEach(x=>dropZone.addEventListener(x,e=>{e.preventDefault();dropZone.classList.remove("drag")}));dropZone.ondrop=e=>addFiles(e.dataTransfer.files);
 $('clearBtn').onclick=()=>{state.items=[];state.selected=0;resultCard.style.display="none";galleryRender();previewRender();status("Envie pelo menos uma foto.")};$('prevBtn').onclick=()=>{state.selected=clamp(state.selected-1,0,state.items.length-1);galleryRender();previewRender()};$('nextBtn').onclick=()=>{state.selected=clamp(state.selected+1,0,state.items.length-1);galleryRender();previewRender()};
 ["bgStyle","brightness","contrast","sharpness"].forEach(id=>$(id).oninput=()=>{if(id!=="bgStyle")$(id+"Val").textContent=$(id).value;previewRender();if(state.items.length)galleryRender()});
+
+/* ===== Modo "Feed rolante": fundo desfocado parado + fotos subindo com cantos arredondados ===== */
+let uid=0;
+const CARD_W=.81,GAP_F=.07,PAD=48;
+let cardCache={key:"",cards:null},bgCache={key:"",c:null};
+function isScroll(){return $("layoutMode").value==="scroll"}
+function rr(ctx,x,y,w,h,r){r=Math.max(0,Math.min(r,w/2,h/2));ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function scrollOpts(){return{blur:+$("bgBlur").value,dim:+$("bgDim").value/100,radius:+$("cardRadius").value/100*W,bright:+$("brightness").value,contrast:+$("contrast").value}}
+function refreshBgOptions(){const sel=$("bgPhoto"),prev=sel.value;sel.innerHTML="";state.items.forEach((_,i)=>sel.add(new Option(`Foto ${i+1}`,String(i))));if(state.customBg)sel.add(new Option("Imagem enviada","custom"));sel.value=[...sel.options].some(o=>o.value===prev)?prev:(sel.options.length?sel.options[0].value:"")}
+function bgSource(){const v=$("bgPhoto").value;if(v==="custom"&&state.customBg)return{img:state.customBg.img,id:"c"+state.customBg.id};const it=state.items[+v]||state.items[0];return{img:it.img,id:"i"+it.id}}
+function buildBg(img,o){const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d"),iw=img.naturalWidth,ih=img.naturalHeight,s=Math.max(W/iw,H/ih)*1.12,dw=iw*s,dh=ih*s;
+if(typeof x.filter==="string"){x.filter=`blur(${o.blur}px)`;x.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh);x.filter="none"}
+else{const k=Math.max(6,Math.round(o.blur/1.2)),t=document.createElement("canvas");t.width=Math.ceil(W/k);t.height=Math.ceil(H/k);const tx=t.getContext("2d");tx.imageSmoothingQuality="high";tx.drawImage(img,(W-dw)/2/k,(H-dh)/2/k,dw/k,dh/k);x.imageSmoothingEnabled=true;x.imageSmoothingQuality="high";x.drawImage(t,0,0,W,H)}
+x.fillStyle=`rgba(0,0,0,${o.dim})`;x.fillRect(0,0,W,H);return c}
+function buildCard(item,o){const iw=item.img.naturalWidth,ih=item.img.naturalHeight;let w=W*CARD_W,h=w*ih/iw;const maxH=H*.72;if(h>maxH){h=maxH;w=h*iw/ih}
+const c=document.createElement("canvas");c.width=Math.ceil(w)+PAD*2;c.height=Math.ceil(h)+PAD*2;const x=c.getContext("2d");
+x.save();x.shadowColor="rgba(0,0,0,.38)";x.shadowBlur=40;x.shadowOffsetY=12;x.fillStyle="#222";rr(x,PAD,PAD,w,h,o.radius);x.fill();x.restore();
+x.save();rr(x,PAD,PAD,w,h,o.radius);x.clip();x.fillStyle="#fff";x.fillRect(PAD,PAD,w,h);x.filter=`brightness(${100+o.bright}%) contrast(${100+o.contrast}%)`;x.drawImage(item.img,PAD,PAD,w,h);x.restore();
+return{c,w,h,pad:PAD}}
+function getLayout(){const o=scrollOpts(),ck=state.items.map(i=>i.id).join(",")+"|"+o.bright+"|"+o.contrast+"|"+o.radius;
+if(cardCache.key!==ck)cardCache={key:ck,cards:state.items.map(it=>buildCard(it,o))};
+const b=bgSource(),bk=b.id+"|"+o.blur+"|"+o.dim;if(bgCache.key!==bk)bgCache={key:bk,c:buildBg(b.img,o)};
+const cards=cardCache.cards,gap=Math.round(W*GAP_F),cum=[];let acc=0;cards.forEach(cd=>{cum.push(acc);acc+=cd.h+gap});
+const centerTop=i=>(H-cards[i].h)/2-cum[i];
+const cumW=[];let accW=0;cards.forEach(cd=>{cumW.push(accW);accW+=cd.w+gap});
+const centerLeft=i=>(W-cards[i].w)/2-cumW[i];
+return{bg:bgCache.c,cards,cum,cumW,gap,centerTop,centerLeft,startTop:H*.58,endTop:centerTop(cards.length-1),startLeft:W*.6,endLeft:centerLeft(cards.length-1)}}
+function drawScrollAt(ctx,L,top0){ctx.clearRect(0,0,W,H);ctx.drawImage(L.bg,0,0);L.cards.forEach((cd,i)=>{const top=top0+L.cum[i];if(top>H+cd.pad||top+cd.h<-cd.pad)return;ctx.drawImage(cd.c,(W-cd.w)/2-cd.pad,top-cd.pad)})}
+function scrollPlan(L,fps,dur){const n=L.cards.length,pitch=L.cards.reduce((a,c)=>a+c.h,0)/n+L.gap,V=pitch/(dur/1000),a=.22,D=L.startTop-L.endTop,T=Math.max(1,D/(V*(1-a/2))),frames=Math.max(2,Math.round(T*fps));
+const prog=u=>{const k=1-a;if(u<=k)return u/(1-a/2);const e=u-k;return(k+e-e*e/(2*a))/(1-a/2)};
+return{frames,draw:f=>{const u=f/(frames-1);drawScrollAt(pctx,L,L.startTop+(L.endTop-L.startTop)*prog(u))}}}
+function thumbScroll(item){const c=document.createElement("canvas");c.width=270;c.height=480;const x=c.getContext("2d"),img=item.img,iw=img.naturalWidth,ih=img.naturalHeight,s=Math.max(270/iw,480/ih)*1.12;
+if(typeof x.filter==="string")x.filter="blur(8px)";x.drawImage(img,(270-iw*s)/2,(480-ih*s)/2,iw*s,ih*s);x.filter="none";x.fillStyle="rgba(0,0,0,.28)";x.fillRect(0,0,270,480);
+let w=270*CARD_W,h=w*ih/iw;if(h>480*.72){h=480*.72;w=h*iw/ih}const px=(270-w)/2,py=(480-h)/2;x.save();rr(x,px,py,w,h,16);x.clip();x.fillStyle="#fff";x.fillRect(px,py,w,h);x.drawImage(img,px,py,w,h);x.restore();return c}
+function applyMode(){const s=isScroll();stopPlay();document.body.classList.toggle("scrollmode",s);syncFields();galleryRender();previewRender()}
+$("layoutMode").onchange=applyMode;
+/* ===== Outras animações: lateral contínua, cubo 3D e página virando ===== */
+const F_CUBE=2.4*W,F_PAGE=3.2*W;
+let layerC=null,playing=false;
+function getLayer(){if(!layerC){layerC=document.createElement("canvas");layerC.width=W;layerC.height=H}return layerC}
+function drawHorizAt(ctx,L,left0){ctx.clearRect(0,0,W,H);ctx.drawImage(L.bg,0,0);L.cards.forEach((cd,i)=>{const x=left0+L.cumW[i];if(x>W+cd.pad||x+cd.w<-cd.pad)return;ctx.drawImage(cd.c,x-cd.pad,(H-cd.h)/2-cd.pad)})}
+function drawFlat(ctx,L,i){ctx.clearRect(0,0,W,H);ctx.drawImage(L.bg,0,0);const cd=L.cards[i];ctx.drawImage(cd.c,(W-cd.w)/2-cd.pad,(H-cd.h)/2-cd.pad)}
+function drawPreview(ctx,L,i){const a=$("scrollAnim").value;if(a==="left")drawHorizAt(ctx,L,L.centerLeft(i));else if(a==="up")drawScrollAt(ctx,L,L.centerTop(i));else drawFlat(ctx,L,i)}
+const slideProg=u=>{const a=.22,k=1-a;if(u<=k)return u/(1-a/2);const e=u-k;return(k+e-e*e/(2*a))/(1-a/2)};
+function horizPlan(L,fps,dur){const n=L.cards.length,pitch=L.cards.reduce((a,c)=>a+c.w,0)/n+L.gap,V=pitch/(dur/1000),D=L.startLeft-L.endLeft,T=Math.max(1,D/(V*.89)),frames=Math.max(2,Math.round(T*fps));
+return{frames,draw:f=>{const u=f/(frames-1);drawHorizAt(pctx,L,L.startLeft+(L.endLeft-L.startLeft)*slideProg(u))}}}
+/* faces em perspectiva: usa só a área da foto (sem a sombra), em fatias verticais de 4px; map(u) devolve {x,d} (x na tela, d profundidade) */
+const BIG=20000;
+function inW(fc){return fc.c.width-2*fc.pad}
+function inH(fc){return fc.c.height-2*fc.pad}
+function strips(ctx,fc,map,f){const cw=inW(fc),ch=inH(fc),step=4;let prev=map(-cw/2);
+for(let sx=0;sx<cw;sx+=step){const sw=Math.min(step,cw-sx),nxt=map(sx+sw-cw/2),x0=Math.min(prev.x,nxt.x),x1=Math.max(prev.x,nxt.x),dh=ch*f/((prev.d+nxt.d)/2);
+if(x1-x0>.01)ctx.drawImage(fc.c,fc.pad+sx,fc.pad,sw,ch,x0,H/2-dh/2,x1-x0+.6,dh);prev=nxt}}
+function quad(fc,map,f){const cw=inW(fc),ch=inH(fc),p0=map(-cw/2),p1=map(cw/2);return{x0:p0.x,x1:p1.x,h0:ch*f/p0.d,h1:ch*f/p1.d}}
+function shadeQuad(ctx,fc,map,f,alpha){if(alpha<=.005)return;const q=quad(fc,map,f);ctx.fillStyle=`rgba(0,0,0,${alpha})`;ctx.beginPath();ctx.moveTo(q.x0,H/2-q.h0/2);ctx.lineTo(q.x1,H/2-q.h1/2);ctx.lineTo(q.x1,H/2+q.h1/2);ctx.lineTo(q.x0,H/2+q.h0/2);ctx.closePath();ctx.fill()}
+function faceShadow(ctx,fc,map,f,alpha){const q=quad(fc,map,f);if(Math.abs(q.x1-q.x0)<2)return;ctx.save();ctx.globalAlpha=alpha;ctx.shadowColor="rgba(0,0,0,.38)";ctx.shadowBlur=40;ctx.shadowOffsetX=BIG;ctx.shadowOffsetY=12;ctx.fillStyle="#000";ctx.beginPath();ctx.moveTo(q.x0-BIG,H/2-q.h0/2);ctx.lineTo(q.x1-BIG,H/2-q.h1/2);ctx.lineTo(q.x1-BIG,H/2+q.h1/2);ctx.lineTo(q.x0-BIG,H/2+q.h0/2);ctx.closePath();ctx.fill();ctx.restore()}
+function cubeFrame(ctx,L,i,th){const A=L.cards[i],B=L.cards[i+1],S=Math.max(inW(A),inW(B))/2,f=F_CUBE,Zc=f+S,cs=Math.cos(th),sn=Math.sin(th);
+const mapA=u=>{const X=u*cs-S*sn,Z=-u*sn-S*cs,d=Zc+Z;return{x:W/2+f*X/d,d}};
+const mapB=u=>{const X=S*cs+u*sn,Z=-S*sn+u*cs,d=Zc+Z;return{x:W/2+f*X/d,d}};
+ctx.clearRect(0,0,W,H);ctx.drawImage(L.bg,0,0);faceShadow(ctx,B,mapB,f,1);faceShadow(ctx,A,mapA,f,1);
+const lay=getLayer(),x=lay.getContext("2d");x.clearRect(0,0,W,H);strips(x,B,mapB,f);strips(x,A,mapA,f);
+x.globalCompositeOperation="source-atop";shadeQuad(x,A,mapA,f,.5*sn);shadeQuad(x,B,mapB,f,.5*cs);x.globalCompositeOperation="source-over";
+ctx.drawImage(lay,0,0)}
+function getBack(cd){if(!cd.back){const pad=cd.pad,c=document.createElement("canvas");c.width=cd.c.width;c.height=cd.c.height;const x=c.getContext("2d"),o=scrollOpts();x.save();rr(x,pad,pad,cd.w,cd.h,o.radius);x.clip();const g=x.createLinearGradient(pad,0,pad+cd.w,0);g.addColorStop(0,"#d9dbe2");g.addColorStop(1,"#f1f2f6");x.fillStyle=g;x.fillRect(pad,pad,cd.w,cd.h);x.restore();cd.back={c,pad}}return cd.back}
+function pageFrame(ctx,L,i,ph){const A=L.cards[i],B=L.cards[i+1],f=F_PAGE,cw=inW(A),cs=Math.cos(ph),sn=Math.sin(ph),front=ph<=Math.PI/2,face=front?A:getBack(A);
+const map=u=>{const uu=u+cw/2,X=-cw/2+uu*cs,d=f-uu*sn;return{x:W/2+f*X/d,d}};
+ctx.clearRect(0,0,W,H);ctx.drawImage(L.bg,0,0);ctx.drawImage(B.c,(W-B.w)/2-B.pad,(H-B.h)/2-B.pad);
+const k=ph/Math.PI,al=k<.85?1:Math.max(0,(1-k)/.15);faceShadow(ctx,face,map,f,al);
+const lay=getLayer(),x=lay.getContext("2d");x.clearRect(0,0,W,H);strips(x,face,map,f);
+x.globalCompositeOperation="source-atop";shadeQuad(x,face,map,f,front?.45*sn:.18*Math.abs(cs)+.08);x.globalCompositeOperation="source-over";
+ctx.globalAlpha=al;ctx.drawImage(lay,0,0);ctx.globalAlpha=1}
+function discretePlan(L,fps,dur,tr,kind){const n=L.cards.length,hold=Math.max(1,Math.round(dur/1000*fps)),tf=Math.max(2,Math.round(tr/1000*fps)),seg=hold+tf,frames=hold*n+tf*(n-1);
+return{frames,draw:f=>{const i=Math.min(Math.floor(f/seg),n-1),r=f-i*seg;if(i>=n-1||r<hold){drawFlat(pctx,L,i);return}const e=ease((r-hold)/tf);if(kind==="cube")cubeFrame(pctx,L,i,e*Math.PI/2);else pageFrame(pctx,L,i,e*Math.PI)}}}
+function makePlan(L,fps,dur,tr){const a=$("scrollAnim").value;if(a==="left")return horizPlan(L,fps,dur);if(a==="cube"||a==="page")return discretePlan(L,fps,dur,tr,a);return scrollPlan(L,fps,dur)}
+function stopPlay(){playing=false;$("playBtn").textContent="▶ Ver prévia da animação"}
+function syncFields(){const sc=isScroll(),disc=["cube","page"].includes($("scrollAnim").value);$("durLabel").textContent=sc?(disc?"Tempo de cada foto parada (s)":"Tempo de cada foto na rolagem (s)"):"Duração por foto";$("transField").style.display=(!sc||disc)?"":"none"}
+$("scrollAnim").onchange=()=>{stopPlay();syncFields();if(state.items.length&&isScroll())previewRender()};
+$("playBtn").onclick=()=>{if(playing){stopPlay();previewRender();return}if(!state.items.length||state.rendering)return;const fps=30,dur=Math.max(1.5,Math.min(8,+$('duration').value||3))*1000,tr=Math.max(0,Math.min(1.5,+$('transition').value||0))*1000,plan=makePlan(getLayout(),fps,dur,tr),t0=performance.now();playing=true;$("playBtn").textContent="■ Parar prévia";
+const loop=now=>{if(!playing)return;const f=Math.max(0,Math.floor((now-t0)/1000*fps));if(f>=plan.frames){stopPlay();previewRender();return}plan.draw(f);requestAnimationFrame(loop)};requestAnimationFrame(loop)};
+
+[["bgBlur","px"],["bgDim","%"],["cardRadius","%"]].forEach(([id,u])=>$(id).oninput=()=>{$(id+"Val").textContent=$(id).value+u;if(state.items.length&&isScroll())previewRender()});
+$("bgPhoto").onchange=()=>{if(state.items.length&&isScroll())previewRender()};
+$("bgUploadBtn").onclick=()=>$("bgFile").click();
+$("bgFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const img=await loadImage(f);state.customBg={img,id:++uid};refreshBgOptions();$("bgPhoto").value="custom";if(state.items.length&&isScroll())previewRender();status("Imagem de fundo carregada.")}catch(err){status("Não foi possível ler a imagem de fundo.")}e.target.value=""};
 function mime(pref){const a=pref==="webm"?["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"]:pref==="mp4"?["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4"]:["video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"];return a.find(x=>MediaRecorder.isTypeSupported(x))||""}
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 const mot=t=>.6*t+.4*ease(t);
@@ -141,29 +233,31 @@ const enc=new VideoEncoder({output:(chunk,meta)=>{const d=new Uint8Array(chunk.b
 enc.configure(cfg);
 return{async push(canvas){if(err)throw err;while(enc.encodeQueueSize>6){await wait(4);if(err)throw err}const vf=new VideoFrame(canvas,{timestamp:Math.round(n*1e6/fps),duration:Math.round(1e6/fps)});enc.encode(vf,{keyFrame:n%fps===0});vf.close();n++},
 async finish(){await enc.flush();enc.close();if(err)throw err;if(!avcC||!samples.length)throw Error("O codificador H.264 não devolveu dados.");return muxMp4({w:W,h:H,fps,samples,avcC})}}}
-async function generate(imgs,useEnc,fps,dur,tr){
-const tf=Math.round(tr/1000*fps),fpi=Math.max(1,Math.round(dur/1000*fps)),total=fpi*imgs.length+tf*Math.max(0,imgs.length-1);
+async function generate(imgs,useEnc,fps,dur,tr,plan){
+const tf=Math.round(tr/1000*fps),fpi=Math.max(1,Math.round(dur/1000*fps)),total=plan?plan.frames:fpi*imgs.length+tf*Math.max(0,imgs.length-1);
 let enc=null,rec=null,m="";const chunks=[];
 if(useEnc){enc=await mp4Encoder(fps);if(!enc)throw Error("Este navegador não tem codificador H.264 (WebCodecs).")}
 else{m=mime($('format').value);if(!m)throw Error($('format').value==="mp4"?"Este navegador não grava MP4. Use o Chrome atualizado.":"Este navegador não oferece um formato compatível.");rec=new MediaRecorder(preview.captureStream(fps),{mimeType:m,videoBitsPerSecond:8000000});rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};rec.start(1000)}
 let done=0;const tick=async()=>{done++;if(enc){await enc.push(preview);if(done%3===0)await wait(0)}else await wait(1000/fps)};
+if(plan){for(let f=0;f<plan.frames;f++){plan.draw(f);status(`Gerando vídeo… ${Math.round(100*f/plan.frames)}%`,0.12+.8*f/plan.frames);await tick()}}else{
 for(let i=0;i<imgs.length;i++){
 for(let f=0;f<fpi;f++){frame(pctx,imgs[i],f/Math.max(1,fpi-1),i);status(`Gerando vídeo… ${i+1}/${imgs.length}`,0.12+.8*done/total);await tick()}
 if(i<imgs.length-1&&tf){for(let f=0;f<tf;f++){const p=ease(f/Math.max(1,tf-1));drawTransition(pctx,imgs[i],i,imgs[i+1],i+1,p,transFor(i));status(`Transição ${i+1}/${imgs.length-1}`,0.12+.8*done/total);await tick()}}}
-frame(pctx,imgs[imgs.length-1],1,imgs.length-1);await tick();
+frame(pctx,imgs[imgs.length-1],1,imgs.length-1);await tick()}
 if(enc){status("Finalizando o arquivo MP4…",0.95);return{blob:await enc.finish(),ext:"mp4",kind:"h264"}}
 await wait(250);
 const blob=await new Promise((resolve,reject)=>{rec.onstop=()=>chunks.length?resolve(new Blob(chunks,{type:m})):reject(Error("O navegador não retornou o vídeo."));rec.onerror=e=>reject(e.error||Error("Erro ao gravar."));rec.stop()});
 return{blob,ext:m.includes("mp4")?"mp4":"webm",kind:"rec"}}
-async function renderVideo(){if(!state.items.length||state.rendering)return;state.rendering=true;$('renderBtn').disabled=true;resultCard.style.display="none";step(3);
-try{const imgs=[];for(let i=0;i<state.items.length;i++){imgs.push(process(state.items[i]));status(`Preparando imagens… ${i+1}/${state.items.length}`,0.12*(i+1)/state.items.length);await wait(0)}
+async function renderVideo(){if(!state.items.length||state.rendering)return;stopPlay();state.rendering=true;$('renderBtn').disabled=true;resultCard.style.display="none";step(3);
+try{const imgs=[];for(let i=0;!isScroll()&&i<state.items.length;i++){imgs.push(process(state.items[i]));status(`Preparando imagens… ${i+1}/${state.items.length}`,0.12*(i+1)/state.items.length);await wait(0)}
 const fps=30,fmt=$('format').value,dur=Math.max(1.5,Math.min(8,+$('duration').value||3))*1000,tr=Math.max(0,Math.min(1.5,+$('transition').value||0))*1000;
+const plan=isScroll()?makePlan(getLayout(),fps,dur,tr):null;
 let res=null;
-if(fmt!=="webm"){try{res=await generate(imgs,true,fps,dur,tr)}catch(e){console.warn("MP4 H.264 falhou:",e);status("Codificador MP4 indisponível; usando a gravação do navegador…")}}
-if(!res)res=await generate(imgs,false,fps,dur,tr);
+if(fmt!=="webm"){try{res=await generate(imgs,true,fps,dur,tr,plan)}catch(e){console.warn("MP4 H.264 falhou:",e);status("Codificador MP4 indisponível; usando a gravação do navegador…")}}
+if(!res)res=await generate(imgs,false,fps,dur,tr,plan);
 const url=URL.createObjectURL(res.blob);resultVideo.src=url;downloadLink.href=url;downloadLink.download=`produto_vertical_${Date.now()}.${res.ext}`;
 formatNote.textContent=res.kind==="h264"?"Formato: MP4 (H.264) • 1080×1920 • 30 fps • sem áudio • sem marca d'água.":res.ext==="mp4"?"Formato: MP4 gravado pelo navegador • 1080×1920 • 30 fps • sem áudio.":"Formato: WebM • a Shopee pede MP4: escolha MP4 ou Automático e use o Chrome atualizado.";
-resultCard.style.display="block";step(4);status("Vídeo pronto para pré-visualização e download.",1)}
+resultCard.style.display="block";step(4);status("Vídeo pronto para pré-visualização e download.",1);previewRender()}
 catch(e){console.error(e);status("Não foi possível gerar o vídeo: "+e.message);alert(e.message)}
 finally{state.rendering=false;$('renderBtn').disabled=!state.items.length}}
 $('renderBtn').onclick=renderVideo;background(pctx,"white");
